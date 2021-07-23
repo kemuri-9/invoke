@@ -1,0 +1,267 @@
+/**
+ * Copyright 2021 Steven Walters
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *    http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+plugins {
+    id 'java-library'
+    id 'maven-publish'
+    id 'signing'
+    id 'jacoco'
+    id 'com.github.hierynomus.license' version '0.16.1'
+    id 'net.kemuri9.gradle.mrjar' version '1.0.0'
+    id 'biz.aQute.bnd.builder' version '6.0.0'
+}
+
+group = 'net.kemuri9'
+version = '1.0.0'
+ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+sourceSets {
+    main.resources {
+        srcDir file('.') include 'LICENSE'
+    }
+}
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+    toolchain.languageVersion = JavaLanguageVersion.of(8)
+}
+
+license {
+    strictCheck true
+    header project.file('LICENSEHEADER')
+}
+
+mrjar {
+    useJarInTests = true
+    multireleaseSourceJar = true
+    baseVersion {
+        main {
+            patchesModule = 'net.kemuri9.invoke'
+        }
+        test {
+            patchesModule = 'net.kemuri9.invoke.test'
+        }
+    }
+    addVersion(9) {
+        includeBaseTests = true
+        main {
+            java {
+                compile {
+                    // disable module warnings as the '9' in 'kemuri9' causes a warning
+                    options.compilerArgs << '-Xlint:all,-module'
+                }
+                // API has different documentation for Java 9, so include it. but all later versions do not change
+                documentation {
+                    options.showFromProtected().addBooleanOption('html5', true)
+                    // include links to oracle javadocs in generated javadoc
+                    options.links 'https://docs.oracle.com/javase/9/docs/api/'
+                }
+            }
+            dependsOn 8
+        }
+        test {
+            dependsOn(8) {
+                extendConfigurations = true
+            }
+        }
+        primaryModuleDefinition = true
+    }
+    addVersion(10) {}
+    addVersion(11) {}
+    addVersion(12) {}
+    addVersion(14) {}
+    addVersion(15) {}
+    addVersion(16) {}
+    allAddedVersions {
+        useToolchain = true
+        // all java 10+ versions depend on the java 8 and 9 source code
+        if (version.java10Compatible) {
+            main {
+                dependsOn 8
+                dependsOn 9
+            }
+        }
+        // register version specific source jars, as not all IDEs understand/support multiversion source jars
+        main {
+            registerSourceJar()
+        }
+        // would be nice to have jacoco support MR jars, but it does not yet: https://github.com/jacoco/jacoco/issues/407
+//        jacocoTestReport {
+//            SourceSet verSet = sourceSets["java${version.majorVersion}"]
+//            additionalSourceDirs.from(verSet.allSource)
+//            additionalClassDirs.from(verSet.output)
+//        }
+    }
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+    options.deprecation = true
+    if (!options.compilerArgs.find{ it.startsWith('-Xlint') }) {
+        options.compilerArgs << '-Xlint:all'
+    }
+}
+
+tasks.withType(Test) {
+    useJUnitPlatform()
+    defaultCharacterEncoding = 'UTF-8'
+}
+
+dependencies {    
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.7.2'
+    testImplementation 'org.apache.commons:commons-lang3:3.12.0'
+}
+
+java9Test {
+    // give tests the accesses needed for verifications
+    jvmArgs(['--add-opens', 'java.base/java.lang.invoke=net.kemuri9.invoke.test'])
+    // give reflection access to the tests
+    jvmArgs(['--add-opens', 'net.kemuri9.invoke/net.kemuri9.invoke=net.kemuri9.invoke.test'])
+}
+
+(10..17).each{ verNum ->
+    Test java9Test = project.tasks.java9Test
+    task "java${verNum}Test"(type: Test) {
+        dependsOn jar
+        dependsOn java9TestClasses
+        description = "Runs the unit tests for java ${verNum}."
+        group = JavaBasePlugin.VERIFICATION_GROUP
+        javaLauncher = javaToolchains.launcherFor{ l -> l.languageVersion = JavaLanguageVersion.of(verNum) }
+        // copy over appropriate details 
+        project.afterEvaluate {
+            testClassesDirs = java9Test.testClassesDirs
+            classpath = java9Test.classpath
+            jvmArgs(java9Test.jvmArgs)
+            jvmArgumentProviders.addAll(java9Test.jvmArgumentProviders.findAll{ it.class.name.contains('Patch') })
+        }
+    }
+    check.dependsOn "java${verNum}Test"
+}
+
+java15Test {
+    //jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=10999'
+}
+
+configurations {
+    sourcesElements.attributes {
+        attribute TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 8
+    }
+    javadocElements.attributes {
+        attribute TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 8
+    }
+}
+
+// include links to oracle javadocs in generated javadoc 8
+javadoc {
+    options {
+        links 'https://docs.oracle.com/javase/8/docs/api/'
+    }
+}
+
+jar {
+    manifest {
+        attributes('-exportcontents': 'net.kemuri9.invoke.*',
+            // https://github.com/bndtools/bnd/issues/2227
+            '-fixupmessages': '^Classes found in the wrong directory: .*',
+            'Bundle-Name': 'kemuri9 Invoke Utilities',
+            'Bundle-SymbolicName': 'kemuri9-invoke',
+            'Bundle-DocURL': 'https://github.com/kemuri-9/invoke',
+            'Import-Package': 'sun.invoke.util;resolution:=optional, *',
+            )
+    }
+}
+
+jacocoTestReport {
+    dependsOn check // tests are required to run before generating the report
+}
+// replace the code coverage so that it can depend on check
+project.tasks.replace('jacocoTestCoverageVerification', JacocoCoverageVerification).configure {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.80
+            }
+        }
+    }
+    dependsOn check
+}
+check {
+    finalizedBy jacocoTestReport // report is always generated after tests run
+    finalizedBy jacocoTestCoverageVerification // enforce coverage checks
+}
+
+publishing {
+    repositories {
+        maven {
+            name 'mavenCentralStaging'
+            url 'https://s01.oss.sonatype.org/service/local/staging/deploy/maven2/'
+            credentials {
+                username ossrhUsername
+                password ossrhPassword
+            }
+        }
+        maven {
+            name 'mavenCentralSnapshots'
+            url 'https://s01.oss.sonatype.org/content/repositories/snapshots/'
+            credentials {
+                username ossrhUsername
+                password ossrhPassword
+            }
+        }
+    }
+
+    publications {
+        pluginMaven(MavenPublication) {
+        
+            from components.java
+            pom {
+                name = 'Invocation'
+                description = 'Small library for utilizing java invocation engine'
+                url = 'https://github.com/kemuri-9/invoke'
+                licenses {
+                    license {
+                        name = 'The Apache License, Version 2.0'
+                        url = 'https://www.apache.org/licenses/LICENSE-2.0.txt'
+                    }
+                }
+                developers {
+                    developer {
+                        name = 'Steven Walters'
+                        email = 'kemuri9@gmail.com'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://github.com/kemuri-9/invoke.git'
+                    developerConnection = 'scm:git:git://github.com/kemuri-9/invoke.git'
+                    url = 'https://github.com/kemuri-9/invoke/tree/master'
+                }
+            }
+        }
+    }
+}
+
+// sign all the artifacts
+signing {
+    required { isReleaseVersion }
+    useGpgCmd()
+    sign publishing.publications.pluginMaven
+}
