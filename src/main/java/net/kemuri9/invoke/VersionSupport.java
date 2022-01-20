@@ -22,10 +22,10 @@ import java.lang.invoke.MethodType;
 import java.lang.reflect.Field;
 import java.lang.reflect.Member;
 import java.lang.reflect.Modifier;
-import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
-import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.ServiceLoader;
 
 /**
  * simple functionality specific to Java 8
@@ -77,8 +77,13 @@ final class VersionSupport {
         return ret;
     }
 
-    static List<PrivilegedExceptionAction<MethodHandles.Lookup>> getLookups() {
-        return Collections.singletonList(new GetFullAccessDirect());
+    static List<GetFullAccess> getLookups() {
+        ServiceLoader<GetFullAccess> loader = ServiceLoader.load(GetFullAccess.class);
+        List<GetFullAccess> lookups = new ArrayList<>();
+        lookups.add(new GetFullAccessDirect());
+        loader.forEach(lookups::add);
+        lookups.sort(Comparator.comparing(GetFullAccess::getPriority));
+        return lookups;
     }
 
     static Class<?> getType(Lookup lookup, String name) throws ClassNotFoundException {

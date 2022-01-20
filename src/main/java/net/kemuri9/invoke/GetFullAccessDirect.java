@@ -17,13 +17,11 @@ package net.kemuri9.invoke;
 
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.reflect.Field;
-import java.security.PrivilegedExceptionAction;
 
 /**
- * Directly access the field through reflection. In Java 9+, this may fail or cause a warning due
- * to trying to access a field that is not public and not open for reflection.
+ * Directly access the field through reflection.
  */
-final class GetFullAccessDirect implements PrivilegedExceptionAction<Lookup> {
+final class GetFullAccessDirect implements GetFullAccess {
 
 	@Override
 	public Lookup run() throws Exception {

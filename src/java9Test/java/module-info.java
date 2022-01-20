@@ -13,7 +13,6 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-
 /**
  * Invocation Tests
  */
@@ -26,6 +25,9 @@ open module net.kemuri9.invoke.test {
     requires transitive org.junit.jupiter.params;
 
     requires transitive net.kemuri9.invoke;
+    requires transitive jdk.unsupported;
 
     exports net.kemuri9.invoke.test;
+
+    provides net.kemuri9.invoke.GetFullAccess with net.kemuri9.invoke.test.GetFullAccessUnsafe;
 }

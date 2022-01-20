@@ -15,15 +15,15 @@
  */
 package net.kemuri9.invoke;
 
-import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.invoke.VarHandle;
 import java.lang.reflect.Field;
 import java.lang.reflect.Member;
 import java.lang.reflect.Modifier;
-import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
+import java.util.ServiceLoader;
 
 final class VersionSupport {
 
@@ -51,8 +51,16 @@ final class VersionSupport {
         return ret;
     }
 
-    static List<PrivilegedExceptionAction<MethodHandles.Lookup>> getLookups() {
-        return List.of(new GetFullAccessUnsafe(), new GetFullAccessDirect());
+    static List<GetFullAccess> getLookups() {
+        ServiceLoader<GetFullAccess> loader = ServiceLoader.load(GetFullAccess.class);
+        List<GetFullAccess> lookups = new ArrayList<>();
+        // only if invoke is open to us can we use the full access direct
+        if (java.lang.invoke.MethodHandles.class.getModule().isOpen("java.lang.invoke", VersionSupport.class.getModule())) {
+            lookups.add(new GetFullAccessDirect());
+        }
+        loader.forEach(lookups::add);
+        lookups.sort(Comparator.comparing(GetFullAccess::getPriority));
+        return lookups;
     }
 
     static Class<?> getType(Lookup lookup, String name) throws ClassNotFoundException {

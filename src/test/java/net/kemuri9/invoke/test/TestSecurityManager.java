@@ -31,7 +31,9 @@ public class TestSecurityManager extends SecurityManager {
                     // utilizing enum map causes a hit on the enumeration key universe, so allow it
                     "java.util.EnumMap",
                     // allow full access lookup to function
-                    "net.kemuri9.invoke.GetFullAccessDirect"
+                    "net.kemuri9.invoke.GetFullAccessDirect",
+                    // use of service loader
+                    "java.util.ServiceLoader"
                     ));
 
     @Override

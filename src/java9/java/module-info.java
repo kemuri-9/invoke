@@ -19,8 +19,8 @@
  */
 module net.kemuri9.invoke {
     requires java.base;
-    // static would be nice here, but then the module graph does not add it automatically, requiring --add-modules
-    requires jdk.unsupported;
 
     exports net.kemuri9.invoke;
+
+    uses net.kemuri9.invoke.GetFullAccess;
 }

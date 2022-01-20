@@ -13,23 +13,22 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package net.kemuri9.invoke.test;
+package net.kemuri9.invoke;
 
 import java.lang.invoke.MethodHandles;
-import java.lang.invoke.MethodHandles.Lookup;
+import java.security.PrivilegedExceptionAction;
 
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
+/**
+ * Service interface for declaring how to retrieve the JVM's Full access {@link MethodHandles.Lookup}
+ * @since 1.1
+ */
+public interface GetFullAccess extends PrivilegedExceptionAction<MethodHandles.Lookup> {
 
-import net.kemuri9.invoke.GetFullAccess;
-
-class GetFullAccessUnsafeTest {
-
-    @Test
-    void testRun() throws Exception {
-        GetFullAccess action = new GetFullAccessUnsafe();
-        MethodHandles.Lookup lookup = action.run();
-        MethodHandles.Lookup expected = InvokePrivate.getFieldValue(MethodHandles.Lookup.class, "IMPL_LOOKUP");
-        Assertions.assertSame(expected, lookup);
+    /**
+     * Retrieve the priority of the access lookup in comparison to other access lookups.
+     * @return priority of the access lookup in comparison to others.
+     */
+    public default int getPriority() {
+        return 0;
     }
 }

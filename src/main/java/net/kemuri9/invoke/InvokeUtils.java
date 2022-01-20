@@ -22,7 +22,6 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Member;
 import java.lang.reflect.Method;
 import java.security.AccessController;
-import java.security.PrivilegedExceptionAction;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
@@ -193,7 +192,7 @@ public class InvokeUtils {
             return LOOKUP_FULL_ACCESS;
         }
         MethodHandles.Lookup lookup = null;
-        for (Iterator<PrivilegedExceptionAction<MethodHandles.Lookup>> iter = VersionSupport.getLookups().iterator();
+        for (Iterator<GetFullAccess> iter = VersionSupport.getLookups().iterator();
                 iter.hasNext() && lookup == null;) {
             try {
                 lookup = AccessController.doPrivileged(iter.next());

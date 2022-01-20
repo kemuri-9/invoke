@@ -30,3 +30,14 @@ Further details on this behavior can be found at [https://docs.gradle.org/curren
 ## Javadoc
 
 Javadoc for releases are available at [https://kemuri-9.github.io/invoke/](https://kemuri-9.github.io/invoke/)
+
+## Use
+
+When the library has been granted open access to `java.base/java.lang.invoke`, such as through the addition of
+`--add-opens java.base/java.lang.invoke=net.kemuri9.invoke` on the command line, then the library can function as intended.
+
+If one does not have access to the command line parameters to add the opens, or simply does not wish to add the parameters,
+then [invoke-unsafe](https://kemuri-9.github.io/invoke-unsafe/) can be utilized which will attempt to access what it needs
+through the use of `sun.misc.Unsafe`
+
+If invoke-unsafe is also undesirable, then creating a service implementation of `net.kemuri9.invoke.GetFullAccess` that will attain the JVM's full access `MethodHandle.Lookup` is also an option.
