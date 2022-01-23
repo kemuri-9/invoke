@@ -16,6 +16,7 @@
 package net.kemuri9.invoke;
 
 import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodHandles.Lookup;
 import java.security.PrivilegedExceptionAction;
 
 /**
@@ -31,4 +32,12 @@ public interface GetFullAccess extends PrivilegedExceptionAction<MethodHandles.L
     public default int getPriority() {
         return 0;
     }
+
+    /**
+     * Attempt to access the full access {@link Lookup}.
+     * @return Full access {@link Lookup}. {@code null} indicates the operation failed.
+     * @throws Exception When the operation fails
+     */
+    @Override
+    public MethodHandles.Lookup run() throws Exception;
 }

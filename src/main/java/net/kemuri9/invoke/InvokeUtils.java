@@ -121,6 +121,22 @@ public class InvokeUtils {
     }
 
     /**
+     * Retrieve a {@link InvokeField} for the specified {@link Field}
+     * @param lookup {@link MethodHandles.Lookup} to unreflect with.
+     *  {@code null} indicates to use the default lookup
+     * @param field {@link Field} to retrieve an {@link InvokeField} for
+     * @return {@link InvokeField} that can get and possibly set {@link Field}
+     * @throws IllegalAccessException When the unreflect operation fails
+     * @throws IllegalArgumentException When {@code field} is {@code null}
+     */
+    public static InvokeField getField(MethodHandles.Lookup lookup, Field field)
+            throws IllegalAccessException {
+        Utils.notNull(field, "field");
+        lookup = defaultLookup(lookup);
+        return FieldResolve.getField(field, lookup);
+    }
+
+    /**
      * Retrieve all {@link InvokeField}s for the specified {@link Class} accessible by the specified lookup
      * @param lookup {@link MethodHandles.Lookup} to perform the lookup with
      * @param type {@link Class} to retrieve its fields
@@ -149,7 +165,7 @@ public class InvokeUtils {
         for (Member member : members) {
             refs.add(new RefGetSet(member));
         }
-        return VersionSupport.getFields(lookup, refs);
+        return FieldResolve.getFields(lookup, refs);
     }
 
     private static List<InvokeField> getFieldsReflection(MethodHandles.Lookup lookup, Class<?> type, boolean includeInherited) {
@@ -157,29 +173,13 @@ public class InvokeUtils {
         Utils.processClassHierarchy(type, includeInherited, (t)-> {
            for (Field field : t.getDeclaredFields()) {
                try {
-                   fields.add(VersionSupport.getField(field, lookup));
+                   fields.add(FieldResolve.getField(field, lookup));
                } catch (IllegalAccessException e) {
                    // no access, so skip it
                }
            }
         });
         return fields;
-    }
-
-    /**
-     * Retrieve a {@link InvokeField} for the specified {@link Field}
-     * @param lookup {@link MethodHandles.Lookup} to unreflect with.
-     *  {@code null} indicates to use the default lookup
-     * @param field {@link Field} to retrieve an {@link InvokeField} for
-     * @return {@link InvokeField} that can get and set {@link Field}
-     * @throws IllegalAccessException When the unreflect operation fails
-     * @throws IllegalArgumentException When {@code field} is {@code null}
-     */
-    public static InvokeField getField(MethodHandles.Lookup lookup, Field field)
-            throws IllegalAccessException {
-        Utils.notNull(field, "field");
-        lookup = defaultLookup(lookup);
-        return VersionSupport.getField(field, lookup);
     }
 
     /**
@@ -193,7 +193,7 @@ public class InvokeUtils {
         }
         MethodHandles.Lookup lookup = null;
         for (Iterator<GetFullAccess> iter = VersionSupport.getLookups().iterator();
-                iter.hasNext() && lookup == null;) {
+                iter.hasNext() && (lookup == null || !Utils.isFullLookup(lookup));) {
             try {
                 lookup = AccessController.doPrivileged(iter.next());
             } catch (Throwable t) {
@@ -234,7 +234,8 @@ public class InvokeUtils {
      * @throws IllegalArgumentException When {@code type} is {@code null}
      * @throws UnsupportedOperationException When the operation is not supported
      */
-    public static List<InvokeExecutable<?>> getMethods(MethodHandles.Lookup lookup, Class<?> type, boolean includeInherited) {
+    public static List<InvokeExecutable<?>> getMethods(MethodHandles.Lookup lookup,
+            Class<?> type, boolean includeInherited) {
         Utils.notNull(type, "type");
         lookup = defaultLookup(lookup);
         // try by reflection first, since a security manager is most often not in place to prevent the access
@@ -246,7 +247,8 @@ public class InvokeUtils {
         }
     }
 
-    private static List<InvokeExecutable<?>> getMethodsLookup(MethodHandles.Lookup lookup, Class<?> type, boolean includeInherited) {
+    private static List<InvokeExecutable<?>> getMethodsLookup(MethodHandles.Lookup lookup,
+            Class<?> type, boolean includeInherited) {
         List<Member> members = MemberNameAccess.getInstance().getMethods(lookup, type, includeInherited, null, null);
         List<InvokeExecutable<?>> executables = new ArrayList<>(members.size());
         LookupAccess access = LookupAccess.getInstance();
@@ -261,7 +263,8 @@ public class InvokeUtils {
         return executables;
     }
 
-    private static List<InvokeExecutable<?>> getMethodsReflection(MethodHandles.Lookup lookup, Class<?> type, boolean includeInherited) {
+    private static List<InvokeExecutable<?>> getMethodsReflection(MethodHandles.Lookup lookup,
+            Class<?> type, boolean includeInherited) {
         List<InvokeExecutable<?>> executables = new ArrayList<>(32);
         Utils.processClassHierarchy(type, includeInherited, (t)-> {
             for (Method method : t.getDeclaredMethods()) {
@@ -365,7 +368,8 @@ public class InvokeUtils {
      * Perform an Unreflection operation
      * @param <E> Type of {@link Member} to unreflect
      * @param <R> Type of return from unreflection
-     * @param lookup {@link MethodHandles.Lookup} to lookup with. {@code null} indicates to utilize {@link #getDefaultLookup()}
+     * @param lookup {@link MethodHandles.Lookup} to lookup with.
+     *  {@code null} indicates to utilize {@link #getDefaultLookup()}
      * @param element {@link Member} to unreflect
      * @param unreflector {@link Unreflector} operation to perform
      * @return Result of the unreflection operation. {@code null} if {@code element} is {@code null}

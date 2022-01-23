@@ -19,9 +19,6 @@ import java.lang.invoke.MethodHandle;
 import java.lang.invoke.MethodHandles;
 import java.lang.invoke.MethodHandles.Lookup;
 import java.lang.invoke.MethodType;
-import java.lang.reflect.Field;
-import java.lang.reflect.Member;
-import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -42,39 +39,6 @@ final class VersionSupport {
                     MethodType.methodType(boolean.class, Class.class, Class.class, int.class));
         } catch (Throwable t) {}
         VERIFY_ACCESS = handle;
-    }
-
-    static InvokeField getField(Field field, Lookup lookup) throws IllegalAccessException {
-        MethodHandle getter = InvokeUtils.unreflect(lookup, field, UnreflectToMethodHandle.FIELD_GETTER);
-        MethodHandle setter = null;
-        try {
-            setter = InvokeUtils.unreflect(lookup, field, UnreflectToMethodHandle.FIELD_SETTER);
-        } catch (IllegalAccessException ex) {
-            // read only field
-        }
-        return newField(field, getter, setter);
-    }
-
-   static List<InvokeField> getFields(Lookup lookup, List<RefGetSet> fieldMembers) {
-        List<InvokeField> ret = new ArrayList<>(fieldMembers.size());
-        LookupAccessVersion access = LookupAccess.getInstance();
-        for (RefGetSet ref : fieldMembers) {
-            MethodHandle getter, setter = null;
-            try {
-                getter = access.resolveField(lookup, ref.getter);
-            } catch (RuntimeException ex) {
-                // do not have access permissions, so skip it
-                continue;
-            }
-
-            try {
-                setter = access.resolveField(lookup, ref.setter);
-            } catch (RuntimeException ex) {
-                // read only field
-            }
-            ret.add(newField(ref.getter, getter, setter));
-        }
-        return ret;
     }
 
     static List<GetFullAccess> getLookups() {
@@ -99,12 +63,6 @@ final class VersionSupport {
         }
         Boolean accessible = InvokeUtils.invokeQuietly(VERIFY_ACCESS, nestedType, lookup.lookupClass(), lookup.lookupModes());
         return Utils.defaultValue(accessible, Boolean.TRUE);
-    }
-
-    static InvokeField newField(Member member, MethodHandle getter, MethodHandle setter) {
-        return (Modifier.isStatic(member.getModifiers()))
-                ? new InvokeFieldStaticImpl<>(member, getter, setter)
-                : new InvokeFieldInstanceImpl<>(member, getter, setter);
     }
 
     private VersionSupport() {}

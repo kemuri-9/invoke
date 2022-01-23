@@ -23,15 +23,20 @@ import java.lang.reflect.Field;
  */
 final class GetFullAccessDirect implements GetFullAccess {
 
-	@Override
-	public Lookup run() throws Exception {
-		Field field = Lookup.class.getDeclaredField("IMPL_LOOKUP");
-		field.setAccessible(true);
-		try {
-			Object lookup = field.get(null);
-			return (Lookup) lookup;
-		} finally {
-			field.setAccessible(false);
-		}
-	}
+    /**
+     * Attempt to access the full access {@link Lookup} directly through reflection.
+     * @return Full access {@link Lookup}
+     * @throws Exception When the operation fails
+     */
+    @Override
+    public Lookup run() throws Exception {
+        Field field = Lookup.class.getDeclaredField("IMPL_LOOKUP");
+        field.setAccessible(true);
+        try {
+            Object lookup = field.get(null);
+            return (Lookup) lookup;
+        } finally {
+            field.setAccessible(false);
+        }
+    }
 }

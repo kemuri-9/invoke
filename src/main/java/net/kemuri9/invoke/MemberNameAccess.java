@@ -171,7 +171,6 @@ abstract class MemberNameAccess {
         return resolve(lookup, members);
     }
 
-
     List<Member> getFields(MethodHandles.Lookup lookup, Class<?> type, boolean withSuper, String name, Class<?> fieldType) {
         /* withSuper does not actually work in getFields: no super type fields are ever returned.
          * Looks to be bug in the native code. so process type tree manually */

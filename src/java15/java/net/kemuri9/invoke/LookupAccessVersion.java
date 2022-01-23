@@ -52,7 +52,7 @@ final class LookupAccessVersion extends LookupAccess {
     }
     
     VarHandle resolveVarHandle(MethodHandles.Lookup lookup, Field field) throws IllegalAccessException {
-        // do a plan unreflect to verify the accesses first though
+        // do a plain unreflect to verify the accesses first though
         lookup.unreflectGetter(field);
         MemberNameAccessVersion mnAccess = MemberNameAccess.getInstance();
         Member getter = mnAccess.untrust(mnAccess.newMember(field, false));
