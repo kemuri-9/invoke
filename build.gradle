@@ -25,7 +25,7 @@ plugins {
 }
 
 group = 'net.kemuri9'
-version = '1.1.0'
+version = '1.1.1'
 ext.isReleaseVersion = !version.endsWith("SNAPSHOT")
 
 repositories {
@@ -127,7 +127,7 @@ tasks.withType(Test) {
 }
 
 dependencies {    
-    testImplementation 'org.junit.jupiter:junit-jupiter:5.7.2'
+    testImplementation 'org.junit.jupiter:junit-jupiter:5.9.0'
     testImplementation 'org.apache.commons:commons-lang3:3.12.0'
 }
 
@@ -138,7 +138,7 @@ java9Test {
     jvmArgs(['--add-opens', 'net.kemuri9.invoke/net.kemuri9.invoke=net.kemuri9.invoke.test'])
 }
 
-(10..17).each{ verNum ->
+(10..18).each{ verNum ->
     Test java9Test = project.tasks.java9Test
     task "java${verNum}Test"(type: Test) {
         dependsOn jar
@@ -160,6 +160,23 @@ java9Test {
 java15Test {
     //jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=10999'
 }
+
+task "java18TestSM"(type: Test) {
+    dependsOn jar
+    dependsOn java9TestClasses
+    description = "Runs the unit tests for java 18 with Security Manager"
+    group = JavaBasePlugin.VERIFICATION_GROUP
+    javaLauncher = javaToolchains.launcherFor{ l -> l.languageVersion = JavaLanguageVersion.of(18) }
+    // copy over appropriate details
+    project.afterEvaluate {
+        testClassesDirs = java9Test.testClassesDirs
+        classpath = java9Test.classpath
+        jvmArgs(java9Test.jvmArgs)
+        jvmArgumentProviders.addAll(java9Test.jvmArgumentProviders.findAll{ it.class.name.contains('Patch') })
+    }
+    jvmArgs '-Djava.security.manager=allow'
+}
+check.dependsOn "java18TestSM"
 
 configurations {
     sourcesElements.attributes {

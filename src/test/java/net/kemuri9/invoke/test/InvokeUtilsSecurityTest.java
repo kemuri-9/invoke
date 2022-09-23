@@ -28,6 +28,12 @@ import org.junit.jupiter.api.Timeout;
 public class InvokeUtilsSecurityTest extends InvokeUtilsTest {
 
     private static void setSecurityManager(SecurityManager sm) throws Throwable {
+        if (TestUtils.isAtLeastJava(18)) {
+            String smProp = System.getProperty("java.security.manager");
+            if (!"allow".equals(smProp)) {
+                return;
+            }
+        }
         System.setSecurityManager(sm);
     }
 
