@@ -68,6 +68,7 @@ mrjar {
                 compile {
                     // disable module warnings as the '9' in 'kemuri9' causes a warning
                     options.compilerArgs << '-Xlint:all,-module'
+                    options.compilerArgs.addAll(['--module-version', project.version])
                 }
                 // API has different documentation for Java 9, so include it. but all later versions do not change
                 documentation {
