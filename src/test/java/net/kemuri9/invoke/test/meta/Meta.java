@@ -188,6 +188,11 @@ public class Meta {
             // registerNatives was removed in java 14
             objMethods.remove(0);
         }
+        if (TestUtils.isAtLeastJava(19)) {
+            // wait(long) is no longer native as private final native wait0 is added in its place
+            objMethods.add(new ExecutableMeta("wait0", Modifier.PRIVATE | Modifier.FINAL | Modifier.NATIVE, long.class));
+            objMethods.set(9, new ExecutableMeta("wait", Modifier.PUBLIC | Modifier.FINAL, long.class));
+        }
 
         OBJECT = new TypeMeta(Object.class,
                 Arrays.asList(new ExecutableMeta("<init>", Modifier.PUBLIC)), null, objMethods, null);

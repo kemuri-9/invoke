@@ -139,45 +139,39 @@ java9Test {
     jvmArgs(['--add-opens', 'net.kemuri9.invoke/net.kemuri9.invoke=net.kemuri9.invoke.test'])
 }
 
-(10..18).each{ verNum ->
+Closure createTest = { String name, int verNum, String extraDesc, String jvArg ->
     Test java9Test = project.tasks.java9Test
-    task "java${verNum}Test"(type: Test) {
+    task "${name}"(type: Test) {
         dependsOn jar
         dependsOn java9TestClasses
-        description = "Runs the unit tests for java ${verNum}."
+        description = "Runs the unit tests for java ${verNum}${extraDesc}."
         group = JavaBasePlugin.VERIFICATION_GROUP
         javaLauncher = javaToolchains.launcherFor{ l -> l.languageVersion = JavaLanguageVersion.of(verNum) }
-        // copy over appropriate details 
+        // copy over appropriate details
         project.afterEvaluate {
             testClassesDirs = java9Test.testClassesDirs
             classpath = java9Test.classpath
             jvmArgs(java9Test.jvmArgs)
             jvmArgumentProviders.addAll(java9Test.jvmArgumentProviders.findAll{ it.class.name.contains('Patch') })
         }
+        if (jvArg) {
+            jvmArgs jvArg
+        }
     }
-    check.dependsOn "java${verNum}Test"
+    check.dependsOn "${name}"
+}
+
+(10..19).each{ verNum ->
+    createTest("java${verNum}Test", verNum, '', null)
+    if (verNum >= 18) {
+        // for 18+ run a variation with security manager enabled to verify it
+        createTest("java${verNum}TestSM", verNum, ' with Security Manager', '-Djava.security.manager=allow')
+    }
 }
 
 java15Test {
     //jvmArgs '-Xdebug', '-Xrunjdwp:transport=dt_socket,server=y,suspend=y,address=10999'
 }
-
-task "java18TestSM"(type: Test) {
-    dependsOn jar
-    dependsOn java9TestClasses
-    description = "Runs the unit tests for java 18 with Security Manager"
-    group = JavaBasePlugin.VERIFICATION_GROUP
-    javaLauncher = javaToolchains.launcherFor{ l -> l.languageVersion = JavaLanguageVersion.of(18) }
-    // copy over appropriate details
-    project.afterEvaluate {
-        testClassesDirs = java9Test.testClassesDirs
-        classpath = java9Test.classpath
-        jvmArgs(java9Test.jvmArgs)
-        jvmArgumentProviders.addAll(java9Test.jvmArgumentProviders.findAll{ it.class.name.contains('Patch') })
-    }
-    jvmArgs '-Djava.security.manager=allow'
-}
-check.dependsOn "java18TestSM"
 
 configurations {
     sourcesElements.attributes {
